@@ -11,9 +11,15 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT OR Apache-2.0" }
 
-dependencies = [
-    "click",
-]
+dependencies = ["click"]
+
+
+[project.urls]
+"Homepage" = "https://github.com/fakerybakery/ttstune"
+"Source" = "https://github.com/fakerybakery/ttstune"
+"Bug Tracker" = "https://github.com/fakerybakery/ttstune/issues"
+"Changelog" = "https://github.com/fakerybakery/ttstune/releases"
+
 
 [project.scripts]
 ttstune = "ttstune.cli:main"
