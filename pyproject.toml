@@ -15,7 +15,8 @@ dependencies = [
     "click",
     "chatterbox-tts",
     "wandb",
-    "transformers[torch]"
+    "transformers[torch]",
+    "pandas",
 ]
 
 
