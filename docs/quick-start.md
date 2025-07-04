@@ -15,7 +15,7 @@ This guide will get you up and running with TTSTune in 10 minutes.
 pip install ttstune
 
 # Or install from source
-git clone https://github.com/your-org/ttstune.git
+git clone https://github.com/fakerybakery/ttstune.git
 cd ttstune
 pip install -e .
 ```
