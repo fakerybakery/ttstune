@@ -255,8 +255,8 @@ This project is dual-licensed under the MIT and Apache 2.0 licenses. See the [LI
 
 TTSTune is built on and wraps the work of many open-source projects:
 
-* [chatterbox-finetuning (@stlohrey)](https://github.com/stlohrey/chatterbox-finetuning)
-* [F5-TTS](https://github.com/SWivid/F5-TTS)
+* [chatterbox-finetuning (@stlohrey)](https://github.com/stlohrey/chatterbox-finetuning) - All Chatterbox finetuning was adapted from this project.
+* [F5-TTS](https://github.com/SWivid/F5-TTS) - F5-TTS finetuning wraps/was adapted from the official F5-TTS repo.
 * [Transformers](https://github.com/huggingface/transformers)
 * [Datasets](https://github.com/huggingface/datasets)
 

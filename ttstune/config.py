@@ -38,6 +38,18 @@ class WandbConfig:
     notes: Optional[str] = None
     config: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "enabled": self.enabled,
+            "project": self.project,
+            "entity": self.entity,
+            "name": self.name,
+            "tags": self.tags,
+            "notes": self.notes,
+            "config": self.config,
+        }
+
 
 @dataclass
 class DatasetConfig:
@@ -71,6 +83,36 @@ class DatasetConfig:
     trust_remote_code: bool = False
     use_auth_token: Optional[str] = None
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "dataset_path": self.dataset_path,
+            "dataset_type": (
+                self.dataset_type.value
+                if isinstance(self.dataset_type, Enum)
+                else self.dataset_type
+            ),
+            "dataset_name": self.dataset_name,
+            "dataset_config_name": self.dataset_config_name,
+            "train_split_name": self.train_split_name,
+            "eval_split_name": self.eval_split_name,
+            "text_column_name": self.text_column_name,
+            "audio_column_name": self.audio_column_name,
+            "eval_split_size": self.eval_split_size,
+            "preprocessing_num_workers": self.preprocessing_num_workers,
+            "ignore_verifications": self.ignore_verifications,
+            "max_audio_duration_s": self.max_audio_duration_s,
+            "min_audio_duration_s": self.min_audio_duration_s,
+            "max_audio_length": self.max_audio_length,
+            "min_audio_length": self.min_audio_length,
+            "sample_rate": self.sample_rate,
+            "max_text_length": self.max_text_length,
+            "min_text_length": self.min_text_length,
+            "streaming": self.streaming,
+            "trust_remote_code": self.trust_remote_code,
+            "use_auth_token": self.use_auth_token,
+        }
+
 
 @dataclass
 class ModelConfig:
@@ -86,6 +128,21 @@ class ModelConfig:
 
     # Model-specific parameters
     model_params: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "model_type": (
+                self.model_type.value
+                if isinstance(self.model_type, Enum)
+                else self.model_type
+            ),
+            "base_model": self.base_model,
+            "local_model_dir": self.local_model_dir,
+            "cache_dir": self.cache_dir,
+            "freeze_components": self.freeze_components,
+            "model_params": self.model_params,
+        }
 
 
 @dataclass
@@ -138,6 +195,46 @@ class TrainingConfig:
     # Custom training parameters
     custom_params: Dict[str, Any] = field(default_factory=dict)
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "output_dir": self.output_dir,
+            "num_train_epochs": self.num_train_epochs,
+            "per_device_train_batch_size": self.per_device_train_batch_size,
+            "per_device_eval_batch_size": self.per_device_eval_batch_size,
+            "gradient_accumulation_steps": self.gradient_accumulation_steps,
+            "learning_rate": self.learning_rate,
+            "weight_decay": self.weight_decay,
+            "warmup_steps": self.warmup_steps,
+            "warmup_ratio": self.warmup_ratio,
+            "logging_steps": self.logging_steps,
+            "eval_steps": self.eval_steps,
+            "save_steps": self.save_steps,
+            "save_total_limit": self.save_total_limit,
+            "eval_strategy": self.eval_strategy,
+            "save_strategy": self.save_strategy,
+            "load_best_model_at_end": self.load_best_model_at_end,
+            "metric_for_best_model": self.metric_for_best_model,
+            "greater_is_better": self.greater_is_better,
+            "early_stopping_patience": self.early_stopping_patience,
+            "fp16": self.fp16,
+            "bf16": self.bf16,
+            "gradient_checkpointing": self.gradient_checkpointing,
+            "dataloader_num_workers": self.dataloader_num_workers,
+            "dataloader_pin_memory": self.dataloader_pin_memory,
+            "remove_unused_columns": self.remove_unused_columns,
+            "optim": self.optim,
+            "lr_scheduler_type": self.lr_scheduler_type,
+            "resume_from_checkpoint": self.resume_from_checkpoint,
+            "eval_on_start": self.eval_on_start,
+            "report_to": self.report_to,
+            "do_train": self.do_train,
+            "do_eval": self.do_eval,
+            "gradient_clip_norm": self.gradient_clip_norm,
+            "label_names": self.label_names,
+            "custom_params": self.custom_params,
+        }
+
 
 @dataclass
 class AdvancedConfig:
@@ -154,6 +251,15 @@ class AdvancedConfig:
 
     # Custom preprocessing
     preprocessing: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to dictionary."""
+        return {
+            "component_learning_rates": self.component_learning_rates,
+            "progressive_training": self.progressive_training,
+            "data_augmentation": self.data_augmentation,
+            "preprocessing": self.preprocessing,
+        }
 
 
 @dataclass
