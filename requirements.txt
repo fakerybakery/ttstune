@@ -1,4 +1,3 @@
 ruff
 mypy
-pytest
 pre-commit
