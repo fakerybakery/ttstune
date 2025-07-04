@@ -1,0 +1,132 @@
+# Comprehensive Multilingual Chatterbox Configuration
+# This example demonstrates advanced features for training on multiple languages
+# and using various dataset types
+
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+
+  # Fine-grained component control
+  freeze_components: []  # Train all components for multilingual adaptation
+
+  # Model-specific parameters
+  model_params:
+    attention_dropout: 0.1
+    hidden_dropout: 0.1
+
+dataset:
+  dataset_type: hf_dataset
+  dataset_name: mozilla-foundation/common_voice_11_0
+  dataset_config_name: de  # German subset
+  train_split_name: train
+  eval_split_name: validation
+  eval_split_size: 0.01
+
+  # Column mappings for Common Voice
+  text_column_name: sentence
+  audio_column_name: audio
+
+  # Audio processing constraints
+  max_audio_length: 20.0  # 20 seconds max
+  min_audio_length: 1.0   # 1 second min
+  sample_rate: 16000      # Common Voice sample rate
+
+  # Text processing
+  max_text_length: 200
+  min_text_length: 10
+
+  # HF dataset settings
+  streaming: false
+  trust_remote_code: false
+  preprocessing_num_workers: 4
+
+training:
+  output_dir: ./outputs/chatterbox_multilingual
+
+  # Training schedule
+  num_train_epochs: 3
+  per_device_train_batch_size: 8
+  per_device_eval_batch_size: 8
+  gradient_accumulation_steps: 2
+
+  # Learning rate schedule
+  learning_rate: 2e-4
+  warmup_steps: 1000
+  warmup_ratio: 0.1
+  weight_decay: 0.01
+
+  # Evaluation and saving
+  eval_strategy: steps
+  eval_steps: 1000
+  eval_on_start: true
+  save_strategy: steps
+  save_steps: 2000
+  save_total_limit: 5
+
+  # Logging
+  logging_steps: 50
+  report_to: [tensorboard, wandb]
+
+  # Performance optimizations
+  fp16: true
+  gradient_checkpointing: true
+  dataloader_num_workers: 8
+  dataloader_pin_memory: true
+  gradient_clip_norm: 1.0
+
+  # Training control
+  do_train: true
+  do_eval: true
+  load_best_model_at_end: true
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  early_stopping_patience: 5
+
+# Weights & Biases configuration
+wandb:
+  enabled: true
+  project: chatterbox-multilingual
+  entity: your-wandb-entity
+  name: german-cv11-v1
+  tags: [chatterbox, german, common-voice, multilingual]
+  notes: "Training Chatterbox on German Common Voice 11.0 for multilingual TTS"
+  config:
+    architecture: chatterbox
+    dataset: common_voice_11_0
+    language: german
+
+# Advanced configuration
+advanced:
+  # Component-specific learning rates
+  component_learning_rates:
+    t3: 1e-4          # Text model - moderate learning rate
+    s3gen: 2e-4       # Speech generation - higher learning rate
+    voice_encoder: 5e-5  # Voice encoder - lower learning rate
+
+  # Training strategies
+  progressive_training: false  # Set to true for sequential component training
+
+  # Data augmentation settings
+  data_augmentation:
+    enabled: true
+    speed_perturbation: [0.95, 1.0, 1.05]  # Speed variation
+    noise_augmentation: false
+    volume_perturbation: [0.9, 1.0, 1.1]   # Volume variation
+
+  # Custom preprocessing
+  preprocessing:
+    normalize_text: true
+    remove_punctuation: false  # Keep punctuation for proper intonation
+    lowercase: false           # Keep case for German nouns
+    expand_abbreviations: true
+
+    # Language-specific preprocessing
+    language_specific:
+      german:
+        handle_umlauts: true
+        expand_numbers: true
+        phoneme_conversion: false
+
+# Global settings
+seed: 42
+device: null  # Auto-detect best device

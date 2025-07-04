@@ -58,11 +58,18 @@ class DatasetConfig:
     # Audio processing
     max_audio_duration_s: Optional[float] = None
     min_audio_duration_s: Optional[float] = None
+    max_audio_length: Optional[float] = None  # Alias for max_audio_duration_s
+    min_audio_length: Optional[float] = None  # Alias for min_audio_duration_s
     sample_rate: Optional[int] = None
 
     # Text processing
     max_text_length: Optional[int] = None
     min_text_length: Optional[int] = None
+
+    # HF dataset specific settings
+    streaming: bool = False
+    trust_remote_code: bool = False
+    use_auth_token: Optional[str] = None
 
 
 @dataclass
@@ -120,8 +127,33 @@ class TrainingConfig:
     # Resume training
     resume_from_checkpoint: Optional[str] = None
 
+    # Additional training options
+    eval_on_start: bool = False
+    report_to: List[str] = field(default_factory=lambda: ["tensorboard"])
+    do_train: bool = True
+    do_eval: bool = True
+    gradient_clip_norm: Optional[float] = None
+    label_names: Optional[List[str]] = None
+
     # Custom training parameters
     custom_params: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class AdvancedConfig:
+    """Advanced configuration options."""
+
+    # Component-specific learning rates
+    component_learning_rates: Dict[str, float] = field(default_factory=dict)
+
+    # Training strategies
+    progressive_training: bool = False
+
+    # Data augmentation
+    data_augmentation: Dict[str, Any] = field(default_factory=dict)
+
+    # Custom preprocessing
+    preprocessing: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -132,6 +164,7 @@ class TTSTuneConfig:
     dataset: DatasetConfig
     training: TrainingConfig
     wandb: WandbConfig = field(default_factory=WandbConfig)
+    advanced: AdvancedConfig = field(default_factory=AdvancedConfig)
 
     # Global settings
     seed: int = 42
@@ -164,12 +197,13 @@ class TTSTuneConfig:
         dataset_config = DatasetConfig(**config_dict.get("dataset", {}))
         training_config = TrainingConfig(**config_dict.get("training", {}))
         wandb_config = WandbConfig(**config_dict.get("wandb", {}))
+        advanced_config = AdvancedConfig(**config_dict.get("advanced", {}))
 
         # Create main config
         main_config_dict = {
             k: v
             for k, v in config_dict.items()
-            if k not in ["model", "dataset", "training", "wandb"]
+            if k not in ["model", "dataset", "training", "wandb", "advanced"]
         }
 
         return cls(
@@ -177,6 +211,7 @@ class TTSTuneConfig:
             dataset=dataset_config,
             training=training_config,
             wandb=wandb_config,
+            advanced=advanced_config,
             **main_config_dict,
         )
 

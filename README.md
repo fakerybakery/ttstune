@@ -42,11 +42,14 @@ TTSTune uses an abstract `TTSTuneTrainer` base class that specific model trainer
 Comprehensive documentation is available in the [docs/](docs/) folder:
 
 - [Quick Start Guide](docs/quick-start.md) - Get up and running in 10 minutes
+- [Quick Reference](docs/quick-reference.md) - Copy-paste configs for common scenarios
 - [Configuration Guide](docs/configuration.md) - Complete config reference
+- [Chatterbox Training Guide](docs/models/chatterbox-training-guide.md) - Comprehensive training guide
 - [Model-Specific Guides](docs/models/) - Detailed guides for each model
 - [Dataset Formats](docs/datasets.md) - Supported data formats
 - [CLI Reference](docs/cli.md) - Command-line interface
 - [Examples](examples/) - Real-world configuration examples
+- [Config Templates](config/) - Ready-to-use configuration templates
 
 ## 🎯 Supported Models
 
@@ -119,6 +122,29 @@ training:
 wandb:
   enabled: true
   project: my-voice-clone
+```
+
+### German Language Training (Yodas Dataset)
+
+```yaml
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+  freeze_components: []
+
+dataset:
+  dataset_type: hf_dataset
+  dataset_name: MrDragonFox/DE_Emilia_Yodas_680h
+  text_column_name: text_scribe
+  eval_split_size: 0.0002
+
+training:
+  output_dir: ./checkpoints/chatterbox_finetuned_yodas
+  num_train_epochs: 1
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 2
+  learning_rate: 5e-5
+  fp16: true
 ```
 
 ### Memory-Efficient Training

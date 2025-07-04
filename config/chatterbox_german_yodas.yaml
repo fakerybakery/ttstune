@@ -1,0 +1,87 @@
+# Chatterbox German Fine-tuning Configuration
+# Based on MrDragonFox/DE_Emilia_Yodas_680h dataset
+# This configuration replicates the original training setup for German voice cloning
+
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+  # For German fine-tuning, we typically want to train all components
+  # but you can freeze components if you want to adapt only specific parts
+  freeze_components: []  # Train all components
+
+dataset:
+  dataset_type: hf_dataset
+  dataset_name: MrDragonFox/DE_Emilia_Yodas_680h
+  dataset_config_name: null  # Use default config
+  train_split_name: train
+  eval_split_size: 0.0002  # 0.02% for evaluation
+
+  # Dataset column mappings for Hugging Face datasets
+  text_column_name: text_scribe  # Column containing transcriptions
+  audio_column_name: audio       # Column containing audio files
+
+  # Data processing settings
+  max_audio_length: 30.0  # Maximum audio length in seconds
+  min_audio_length: 0.5   # Minimum audio length in seconds
+  sample_rate: 22050      # Target sample rate
+
+training:
+  output_dir: ./checkpoints/chatterbox_finetuned_yodas
+
+  # Training schedule
+  num_train_epochs: 1
+  per_device_train_batch_size: 4
+  gradient_accumulation_steps: 2
+
+  # Learning rate and optimization
+  learning_rate: 5e-5
+  warmup_steps: 100
+  weight_decay: 0.01
+
+  # Mixed precision and performance
+  fp16: true
+  dataloader_num_workers: 8
+  dataloader_pin_memory: false
+
+  # Evaluation settings
+  eval_strategy: steps
+  eval_steps: 2000
+  eval_on_start: true
+  per_device_eval_batch_size: 4
+
+  # Checkpointing
+  save_strategy: steps
+  save_steps: 4000
+  save_total_limit: 4
+
+  # Logging
+  logging_steps: 10
+  report_to: [tensorboard]
+
+  # Memory optimization for large datasets
+  gradient_checkpointing: false  # Can enable if running out of memory
+  remove_unused_columns: false
+
+# Weights & Biases integration (optional)
+wandb:
+  enabled: false  # Set to true to enable wandb logging
+  project: chatterbox-german-yodas
+  name: german-voice-clone-v1
+  tags: [chatterbox, german, voice-cloning, yodas]
+  notes: "Fine-tuning Chatterbox on German Yodas dataset for voice cloning"
+
+# Advanced training settings
+advanced:
+  # Component-specific learning rates (optional)
+  component_learning_rates:
+    t3: 5e-5      # T3 model learning rate
+    s3gen: 5e-5   # S3Gen model learning rate
+
+  # Training strategies
+  progressive_training: false  # Train components sequentially
+
+  # Data augmentation (if supported)
+  data_augmentation:
+    enabled: false
+    speed_perturbation: [0.9, 1.0, 1.1]
+    noise_augmentation: false
