@@ -1,5 +1,5 @@
 """Chatterbox trainer."""
 
-from .trainer import ChatterboxTrainer
+from ttstune.trainers.chatterbox.trainer import ChatterboxTrainer
 
 __all__ = ["ChatterboxTrainer"]

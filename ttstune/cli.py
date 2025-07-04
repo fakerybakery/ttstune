@@ -4,9 +4,9 @@ import click
 from pathlib import Path
 from typing import Optional
 
-from .config import load_config, create_example_config, ModelType, TTSTuneConfig
-from .trainers.chatterbox import ChatterboxTrainer
-from .utils import get_logger
+from ttstune.config import load_config, create_example_config, ModelType, TTSTuneConfig
+from ttstune.trainers.chatterbox import ChatterboxTrainer
+from ttstune.utils import get_logger
 
 logger = get_logger(__name__)
 

@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import json
 from datasets import load_dataset, Dataset as HFDataset
-from ..config import DatasetConfig, DatasetType
+from ttstune.config import DatasetConfig, DatasetType
 
 logger = logging.getLogger(__name__)
 

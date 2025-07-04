@@ -1,6 +1,6 @@
 """TTSTune - Configuration-driven TTS model fine-tuning framework."""
 
-from .config import (
+from ttstune.config import (
     TTSTuneConfig,
     ModelConfig,
     DatasetConfig,
@@ -12,10 +12,10 @@ from .config import (
     create_example_config,
 )
 
-from .trainers.base import TTSTuneTrainer, MultiComponentTrainer
-from .trainers.chatterbox import ChatterboxTrainer
+from ttstune.trainers.base import TTSTuneTrainer, MultiComponentTrainer
+from ttstune.trainers.chatterbox import ChatterboxTrainer
 
-from .utils import (
+from ttstune.utils import (
     setup_logging,
     get_logger,
     setup_device,

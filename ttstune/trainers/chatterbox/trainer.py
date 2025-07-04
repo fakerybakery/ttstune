@@ -8,9 +8,9 @@ from dataclasses import dataclass
 import subprocess
 import sys
 
-from ...config import TTSTuneConfig, ModelType, DatasetConfig, TrainingConfig
-from ...utils import get_logger
-from ..base import MultiComponentTrainer
+from ttstune.config import TTSTuneConfig, ModelType, DatasetConfig, TrainingConfig
+from ttstune.utils import get_logger
+from ttstune.trainers.base import MultiComponentTrainer
 
 logger = get_logger(__name__)
 

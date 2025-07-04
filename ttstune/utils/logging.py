@@ -5,7 +5,7 @@ import sys
 from pathlib import Path
 from typing import Optional, Dict, Any
 import wandb
-from ..config import WandbConfig
+from ttstune.config import WandbConfig
 
 
 def setup_logging(

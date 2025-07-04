@@ -9,8 +9,8 @@ from torch.utils.data import Dataset, DataLoader
 from transformers import Trainer, TrainingArguments, set_seed
 from transformers.trainer_callback import TrainerCallback
 
-from ..config import TTSTuneConfig, ModelType
-from ..utils import (
+from ttstune.config import TTSTuneConfig, ModelType
+from ttstune.utils import (
     setup_device,
     setup_logging,
     get_logger,
