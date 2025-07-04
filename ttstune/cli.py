@@ -1,11 +1,10 @@
 """TTSTune CLI."""
 
+import click
 from pathlib import Path
 from typing import Optional
 
-import click
-
-from .config import ModelType, create_example_config, load_config
+from .config import load_config, create_example_config, ModelType, TTSTuneConfig
 from .trainers.chatterbox import ChatterboxTrainer
 from .utils import get_logger
 
@@ -15,6 +14,7 @@ logger = get_logger(__name__)
 @click.group()
 def main() -> None:
     """TTSTune - Configuration-driven TTS model fine-tuning framework."""
+    pass
 
 
 @main.command()
@@ -49,8 +49,7 @@ def train(config: Path, verbose: bool) -> None:
         if tts_config.model.model_type == ModelType.CHATTERBOX:
             trainer = ChatterboxTrainer(tts_config)
         else:
-            msg = f"Unsupported model type: {tts_config.model.model_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported model type: {tts_config.model.model_type}")
 
         # Train the model
         with trainer:
@@ -76,7 +75,7 @@ def train(config: Path, verbose: bool) -> None:
             import traceback
 
             traceback.print_exc()
-        raise click.Abort
+        raise click.Abort()
 
 
 @main.command()
@@ -106,13 +105,13 @@ def create_config(model_type: str, output: Path) -> None:
         click.echo(f"Created example configuration for {model_type} at {output}")
         click.echo("\nNext steps:")
         click.echo(
-            "1. Edit the configuration file to match your dataset and requirements",
+            "1. Edit the configuration file to match your dataset and requirements"
         )
         click.echo("2. Run training with: ttstune train --config config.yaml")
 
     except Exception as e:
         click.echo(f"Error creating config: {e}", err=True)
-        raise click.Abort
+        raise click.Abort()
 
 
 @main.command()
@@ -152,7 +151,7 @@ def validate_config(config: Path) -> None:
 
     except Exception as e:
         click.echo(f"✗ Configuration validation failed: {e}", err=True)
-        raise click.Abort
+        raise click.Abort()
 
 
 @main.command()
@@ -178,8 +177,7 @@ def evaluate(config: Path, checkpoint: Optional[Path]) -> None:
         if tts_config.model.model_type == ModelType.CHATTERBOX:
             trainer = ChatterboxTrainer(tts_config)
         else:
-            msg = f"Unsupported model type: {tts_config.model.model_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported model type: {tts_config.model.model_type}")
 
         with trainer:
             # Load checkpoint if provided
@@ -202,7 +200,7 @@ def evaluate(config: Path, checkpoint: Optional[Path]) -> None:
 
     except Exception as e:
         click.echo(f"Error during evaluation: {e}", err=True)
-        raise click.Abort
+        raise click.Abort()
 
 
 @main.command()

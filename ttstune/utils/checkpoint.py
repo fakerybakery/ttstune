@@ -1,13 +1,12 @@
 """Checkpoint management utilities."""
 
-import json
 import logging
 import shutil
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Optional, Dict, Any, List
 import torch
-from safetensors.torch import load_file, save_file
+from safetensors.torch import save_file, load_file
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -15,17 +14,16 @@ logger = logging.getLogger(__name__)
 class CheckpointManager:
     """Manages model checkpoints and saves/loads model state."""
 
-    def __init__(self, output_dir: str, save_total_limit: int = 3) -> None:
+    def __init__(self, output_dir: str, save_total_limit: int = 3):
         """Initialize checkpoint manager.
 
         Args:
             output_dir: Directory to save checkpoints
             save_total_limit: Maximum number of checkpoints to keep
-
         """
         self.output_dir = Path(output_dir)
         self.save_total_limit = save_total_limit
-        self.checkpoints: list[Path] = []
+        self.checkpoints: List[Path] = []
 
         # Create output directory
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -54,8 +52,8 @@ class CheckpointManager:
         step: int,
         optimizer: Optional[torch.optim.Optimizer] = None,
         lr_scheduler: Optional[Any] = None,
-        metrics: Optional[dict[str, float]] = None,
-        extra_data: Optional[dict[str, Any]] = None,
+        metrics: Optional[Dict[str, float]] = None,
+        extra_data: Optional[Dict[str, Any]] = None,
     ) -> Path:
         """Save a model checkpoint.
 
@@ -69,7 +67,6 @@ class CheckpointManager:
 
         Returns:
             Path: Path to saved checkpoint
-
         """
         checkpoint_dir = self.output_dir / f"checkpoint-{step}"
         checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -130,7 +127,7 @@ class CheckpointManager:
         optimizer: Optional[torch.optim.Optimizer] = None,
         lr_scheduler: Optional[Any] = None,
         device: Optional[torch.device] = None,
-    ) -> dict[str, Any]:
+    ) -> Dict[str, Any]:
         """Load a model checkpoint.
 
         Args:
@@ -142,20 +139,17 @@ class CheckpointManager:
 
         Returns:
             Dict containing loaded training state
-
         """
         checkpoint_dir = Path(checkpoint_path)
 
         if not checkpoint_dir.exists():
-            msg = f"Checkpoint not found: {checkpoint_dir}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"Checkpoint not found: {checkpoint_dir}")
 
         # Load model state
         model_path = checkpoint_dir / "model.safetensors"
         if model_path.exists():
             model_state_dict = load_file(
-                model_path,
-                device=str(device) if device else "cpu",
+                model_path, device=str(device) if device else "cpu"
             )
             model.load_state_dict(model_state_dict)
             logger.info(f"Loaded model state from {model_path}")
@@ -168,7 +162,7 @@ class CheckpointManager:
         # Load JSON state
         state_path = checkpoint_dir / "training_state.json"
         if state_path.exists():
-            with open(state_path) as f:
+            with open(state_path, "r") as f:
                 training_state.update(json.load(f))
 
         # Load torch state
@@ -201,7 +195,6 @@ class CheckpointManager:
 
         Returns:
             Optional[Path]: Path to latest checkpoint or None if no checkpoints
-
         """
         if not self.checkpoints:
             return None
@@ -232,7 +225,6 @@ class CheckpointManager:
 
         Returns:
             Path: Path to saved model directory
-
         """
         final_model_dir = self.output_dir / "final_model"
         final_model_dir.mkdir(parents=True, exist_ok=True)

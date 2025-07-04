@@ -1,21 +1,24 @@
 """Abstract base trainer for TTSTune."""
 
+import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Optional, Dict, Any, Union, Tuple
 import torch
+from torch.utils.data import Dataset, DataLoader
 from transformers import Trainer, TrainingArguments, set_seed
 from transformers.trainer_callback import TrainerCallback
 
-from ttstune.config import TTSTuneConfig
-from ttstune.utils import (
-    CheckpointManager,
-    WandbLogger,
-    get_logger,
+from ..config import TTSTuneConfig, ModelType
+from ..utils import (
     setup_device,
     setup_logging,
+    get_logger,
+    CheckpointManager,
+    WandbLogger,
     setup_wandb_logging,
+    create_dataset,
+    create_data_collator,
 )
 
 logger = get_logger(__name__)
@@ -24,16 +27,15 @@ logger = get_logger(__name__)
 class TTSTuneCallback(TrainerCallback):
     """Custom callback for TTSTune training."""
 
-    def __init__(self, wandb_logger: Optional[WandbLogger] = None) -> None:
+    def __init__(self, wandb_logger: Optional[WandbLogger] = None):
         """Initialize callback.
 
         Args:
             wandb_logger: Optional wandb logger for custom logging
-
         """
         self.wandb_logger = wandb_logger
 
-    def on_log(self, args, state, control, model=None, logs=None, **kwargs) -> None:
+    def on_log(self, args, state, control, model=None, logs=None, **kwargs):
         """Called when logging occurs."""
         if self.wandb_logger and logs:
             # Filter and log metrics to wandb
@@ -45,12 +47,11 @@ class TTSTuneCallback(TrainerCallback):
 class TTSTuneTrainer(ABC):
     """Abstract base class for TTS trainers."""
 
-    def __init__(self, config: TTSTuneConfig) -> None:
+    def __init__(self, config: TTSTuneConfig):
         """Initialize trainer.
 
         Args:
             config: TTSTune configuration
-
         """
         self.config = config
         self.device = None
@@ -88,24 +89,26 @@ class TTSTuneTrainer(ABC):
         if self.config.wandb.enabled:
             training_config_dict = self.config.training.to_dict()
             self.wandb_logger = setup_wandb_logging(
-                self.config.wandb,
-                training_config_dict,
+                self.config.wandb, training_config_dict
             )
 
     @abstractmethod
     def load_model(self) -> None:
         """Load and setup the model."""
+        pass
 
     @abstractmethod
     def create_datasets(self) -> None:
         """Create train and eval datasets."""
+        pass
 
     @abstractmethod
     def create_data_collator(self) -> None:
         """Create data collator for the model."""
+        pass
 
     @abstractmethod
-    def compute_metrics(self, eval_preds) -> dict[str, float]:
+    def compute_metrics(self, eval_preds) -> Dict[str, float]:
         """Compute evaluation metrics.
 
         Args:
@@ -113,15 +116,14 @@ class TTSTuneTrainer(ABC):
 
         Returns:
             Dictionary of metrics
-
         """
+        pass
 
     def create_training_arguments(self) -> TrainingArguments:
         """Create Hugging Face training arguments from config.
 
         Returns:
             TrainingArguments: Configured training arguments
-
         """
         training_config = self.config.training
 
@@ -164,7 +166,6 @@ class TTSTuneTrainer(ABC):
 
         Returns:
             Trainer: Configured trainer
-
         """
         training_args = self.create_training_arguments()
 
@@ -177,8 +178,8 @@ class TTSTuneTrainer(ABC):
 
             callbacks.append(
                 EarlyStoppingCallback(
-                    early_stopping_patience=self.config.training.early_stopping_patience,
-                ),
+                    early_stopping_patience=self.config.training.early_stopping_patience
+                )
             )
 
         # Add custom callback
@@ -200,12 +201,11 @@ class TTSTuneTrainer(ABC):
 
         return trainer
 
-    def train(self) -> dict[str, Any]:
+    def train(self) -> Dict[str, Any]:
         """Run training.
 
         Returns:
             Training results
-
         """
         logger.info("Starting training...")
 
@@ -228,7 +228,7 @@ class TTSTuneTrainer(ABC):
         # Train
         logger.info("Starting training loop...")
         train_result = self.trainer.train(
-            resume_from_checkpoint=self.config.training.resume_from_checkpoint,
+            resume_from_checkpoint=self.config.training.resume_from_checkpoint
         )
 
         # Save model
@@ -244,16 +244,14 @@ class TTSTuneTrainer(ABC):
         logger.info("Training completed!")
         return train_result
 
-    def evaluate(self) -> dict[str, Any]:
+    def evaluate(self) -> Dict[str, Any]:
         """Run evaluation.
 
         Returns:
             Evaluation results
-
         """
         if not self.trainer:
-            msg = "Trainer not initialized. Run train() first."
-            raise RuntimeError(msg)
+            raise RuntimeError("Trainer not initialized. Run train() first.")
 
         if not self.eval_dataset:
             logger.warning("No evaluation dataset available.")
@@ -271,23 +269,20 @@ class TTSTuneTrainer(ABC):
     @abstractmethod
     def save_model(self) -> None:
         """Save the trained model in the appropriate format."""
+        pass
 
     def load_checkpoint(self, checkpoint_path: str) -> None:
         """Load model from checkpoint.
 
         Args:
             checkpoint_path: Path to checkpoint
-
         """
         if not self.model:
-            msg = "Model not loaded. Call load_model() first."
-            raise RuntimeError(msg)
+            raise RuntimeError("Model not loaded. Call load_model() first.")
 
         logger.info(f"Loading checkpoint from {checkpoint_path}")
         self.checkpoint_manager.load_checkpoint(
-            checkpoint_path,
-            self.model,
-            device=self.device,
+            checkpoint_path, self.model, device=self.device
         )
 
     def cleanup(self) -> None:
@@ -311,22 +306,22 @@ class TTSTuneTrainer(ABC):
 class MultiComponentTrainer(TTSTuneTrainer):
     """Base class for trainers that handle multiple model components."""
 
-    def __init__(self, config: TTSTuneConfig) -> None:
+    def __init__(self, config: TTSTuneConfig):
         """Initialize multi-component trainer."""
         super().__init__(config)
         self.component_trainers = {}
 
     @abstractmethod
-    def get_component_configs(self) -> dict[str, Any]:
+    def get_component_configs(self) -> Dict[str, Any]:
         """Get configurations for individual components.
 
         Returns:
             Dictionary mapping component names to their configs
-
         """
+        pass
 
     @abstractmethod
-    def train_component(self, component_name: str) -> dict[str, Any]:
+    def train_component(self, component_name: str) -> Dict[str, Any]:
         """Train a specific component.
 
         Args:
@@ -334,20 +329,19 @@ class MultiComponentTrainer(TTSTuneTrainer):
 
         Returns:
             Training results for the component
-
         """
+        pass
 
-    def train(self) -> dict[str, Any]:
+    def train(self) -> Dict[str, Any]:
         """Train all components sequentially.
 
         Returns:
             Combined training results
-
         """
         results = {}
         component_configs = self.get_component_configs()
 
-        for component_name in component_configs:
+        for component_name, component_config in component_configs.items():
             logger.info(f"Training component: {component_name}")
 
             # Train component

@@ -1,9 +1,8 @@
 """Device management utilities."""
 
+import torch
 import logging
 from typing import Optional
-
-import torch
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +15,6 @@ def get_device(device: Optional[str] = None) -> torch.device:
 
     Returns:
         torch.device: The device to use.
-
     """
     if device is not None:
         return torch.device(device)
@@ -42,7 +40,6 @@ def setup_device(device: Optional[str] = None) -> torch.device:
 
     Returns:
         torch.device: The configured device.
-
     """
     device_obj = get_device(device)
 
@@ -66,7 +63,6 @@ def get_device_info() -> dict:
 
     Returns:
         dict: Device information including type, memory, etc.
-
     """
     info = {
         "device_type": "cpu",
@@ -85,7 +81,7 @@ def get_device_info() -> dict:
                 "memory_gb": torch.cuda.get_device_properties(0).total_memory / 1e9,
                 "cuda_version": torch.version.cuda,
                 "cudnn_version": torch.backends.cudnn.version(),
-            },
+            }
         )
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
         info.update({"device_type": "mps", "device_name": "Apple Silicon (MPS)"})

@@ -1,14 +1,16 @@
 """Chatterbox trainer implementation."""
 
+import logging
+from pathlib import Path
+from typing import Dict, Any, Optional, List
+import torch
+from dataclasses import dataclass
 import subprocess
 import sys
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
 
-from ttstune.config import ModelType, TTSTuneConfig
-from ttstune.trainers.base import MultiComponentTrainer
-from ttstune.utils import get_logger
+from ...config import TTSTuneConfig, ModelType, DatasetConfig, TrainingConfig
+from ...utils import get_logger
+from ..base import MultiComponentTrainer
 
 logger = get_logger(__name__)
 
@@ -19,26 +21,24 @@ class ChatterboxComponentConfig:
 
     name: str
     script_path: str
-    model_args: dict[str, Any]
-    data_args: dict[str, Any]
-    training_args: dict[str, Any]
+    model_args: Dict[str, Any]
+    data_args: Dict[str, Any]
+    training_args: Dict[str, Any]
     enabled: bool = True
 
 
 class ChatterboxTrainer(MultiComponentTrainer):
     """Trainer for Chatterbox TTS model that handles T3 and S3Gen components."""
 
-    def __init__(self, config: TTSTuneConfig) -> None:
+    def __init__(self, config: TTSTuneConfig):
         """Initialize Chatterbox trainer.
 
         Args:
             config: TTSTune configuration
-
         """
         if config.model.model_type != ModelType.CHATTERBOX:
-            msg = f"Expected model_type 'chatterbox', got '{config.model.model_type}'"
             raise ValueError(
-                msg,
+                f"Expected model_type 'chatterbox', got '{config.model.model_type}'"
             )
 
         super().__init__(config)
@@ -48,19 +48,17 @@ class ChatterboxTrainer(MultiComponentTrainer):
         self.train_s3gen = "s3gen" not in config.model.freeze_components
 
         if not self.train_t3 and not self.train_s3gen:
-            msg = "At least one component (t3 or s3gen) must be trainable"
-            raise ValueError(msg)
+            raise ValueError("At least one component (t3 or s3gen) must be trainable")
 
         logger.info(
-            f"Training components: T3={self.train_t3}, S3Gen={self.train_s3gen}",
+            f"Training components: T3={self.train_t3}, S3Gen={self.train_s3gen}"
         )
 
-    def get_component_configs(self) -> dict[str, ChatterboxComponentConfig]:
+    def get_component_configs(self) -> Dict[str, ChatterboxComponentConfig]:
         """Get configurations for individual components.
 
         Returns:
             Dictionary mapping component names to their configs
-
         """
         components = {}
 
@@ -118,7 +116,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
             training_args=training_args,
         )
 
-    def _convert_dataset_config(self) -> dict[str, Any]:
+    def _convert_dataset_config(self) -> Dict[str, Any]:
         """Convert TTSTune dataset config to component format."""
         dataset_config = self.config.dataset
 
@@ -131,7 +129,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
                 "preprocessing_num_workers": dataset_config.preprocessing_num_workers,
                 "ignore_verifications": dataset_config.ignore_verifications,
             }
-        if dataset_config.dataset_type.value == "hf_dataset":
+        elif dataset_config.dataset_type.value == "hf_dataset":
             return {
                 "dataset_dir": None,
                 "metadata_file": None,
@@ -145,17 +143,18 @@ class ChatterboxTrainer(MultiComponentTrainer):
                 "preprocessing_num_workers": dataset_config.preprocessing_num_workers,
                 "ignore_verifications": dataset_config.ignore_verifications,
             }
-        # For other formats, use metadata file approach
-        return {
-            "dataset_dir": None,
-            "metadata_file": dataset_config.dataset_path,
-            "dataset_name": None,
-            "eval_split_size": dataset_config.eval_split_size,
-            "preprocessing_num_workers": dataset_config.preprocessing_num_workers,
-            "ignore_verifications": dataset_config.ignore_verifications,
-        }
+        else:
+            # For other formats, use metadata file approach
+            return {
+                "dataset_dir": None,
+                "metadata_file": dataset_config.dataset_path,
+                "dataset_name": None,
+                "eval_split_size": dataset_config.eval_split_size,
+                "preprocessing_num_workers": dataset_config.preprocessing_num_workers,
+                "ignore_verifications": dataset_config.ignore_verifications,
+            }
 
-    def _convert_training_config(self, component: str) -> dict[str, Any]:
+    def _convert_training_config(self, component: str) -> Dict[str, Any]:
         """Convert TTSTune training config to component format."""
         training_config = self.config.training
 
@@ -196,7 +195,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
             "seed": self.config.seed,
         }
 
-    def train_component(self, component_name: str) -> dict[str, Any]:
+    def train_component(self, component_name: str) -> Dict[str, Any]:
         """Train a specific component using its dedicated trainer.
 
         Args:
@@ -204,13 +203,11 @@ class ChatterboxTrainer(MultiComponentTrainer):
 
         Returns:
             Training results for the component
-
         """
         components = self.get_component_configs()
 
         if component_name not in components:
-            msg = f"Component '{component_name}' not found in configuration"
-            raise ValueError(msg)
+            raise ValueError(f"Component '{component_name}' not found in configuration")
 
         component_config = components[component_name]
 
@@ -245,7 +242,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
                     args.extend([f"--{key}", str(value)])
 
         logger.info(
-            f"Starting {component_name} training with command: {' '.join(args)}",
+            f"Starting {component_name} training with command: {' '.join(args)}"
         )
 
         # Run the component trainer
@@ -263,10 +260,10 @@ class ChatterboxTrainer(MultiComponentTrainer):
             }
 
         except subprocess.CalledProcessError as e:
-            logger.exception(
-                f"{component_name} training failed with return code {e.returncode}",
+            logger.error(
+                f"{component_name} training failed with return code {e.returncode}"
             )
-            logger.exception(f"{component_name} stderr: {e.stderr}")
+            logger.error(f"{component_name} stderr: {e.stderr}")
 
             return {
                 "success": False,
@@ -279,16 +276,19 @@ class ChatterboxTrainer(MultiComponentTrainer):
     def load_model(self) -> None:
         """Load model (not used in multi-component approach)."""
         # This is handled by individual component trainers
+        pass
 
     def create_datasets(self) -> None:
         """Create datasets (not used in multi-component approach)."""
         # This is handled by individual component trainers
+        pass
 
     def create_data_collator(self) -> None:
         """Create data collator (not used in multi-component approach)."""
         # This is handled by individual component trainers
+        pass
 
-    def compute_metrics(self, eval_preds) -> dict[str, float]:
+    def compute_metrics(self, eval_preds) -> Dict[str, float]:
         """Compute metrics (not used in multi-component approach)."""
         # This is handled by individual component trainers
         return {}
@@ -358,7 +358,5 @@ class ChatterboxTrainer(MultiComponentTrainer):
         # Log to wandb if enabled
         if self.wandb_logger:
             self.wandb_logger.log_artifact(
-                str(final_model_dir),
-                artifact_type="model",
-                name="chatterbox_finetuned",
+                str(final_model_dir), artifact_type="model", name="chatterbox_finetuned"
             )

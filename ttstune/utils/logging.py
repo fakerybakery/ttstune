@@ -3,11 +3,9 @@
 import logging
 import sys
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Optional, Dict, Any
 import wandb
-
-from ttstune.config import WandbConfig
+from ..config import WandbConfig
 
 
 def setup_logging(
@@ -21,7 +19,6 @@ def setup_logging(
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Optional file to write logs to
         format_string: Custom format string for logs
-
     """
     if format_string is None:
         format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -58,7 +55,6 @@ def get_logger(name: str) -> logging.Logger:
 
     Returns:
         logging.Logger: Configured logger
-
     """
     return logging.getLogger(name)
 
@@ -66,13 +62,12 @@ def get_logger(name: str) -> logging.Logger:
 class WandbLogger:
     """Weights & Biases logger wrapper."""
 
-    def __init__(self, config: WandbConfig, training_config: dict[str, Any]) -> None:
+    def __init__(self, config: WandbConfig, training_config: Dict[str, Any]):
         """Initialize wandb logger.
 
         Args:
             config: Wandb configuration
             training_config: Training configuration to log
-
         """
         self.config = config
         self.enabled = config.enabled
@@ -81,7 +76,7 @@ class WandbLogger:
         if self.enabled:
             self._init_wandb(training_config)
 
-    def _init_wandb(self, training_config: dict[str, Any]) -> None:
+    def _init_wandb(self, training_config: Dict[str, Any]) -> None:
         """Initialize wandb run."""
         try:
             wandb_config = {**training_config, **self.config.config}
@@ -96,19 +91,18 @@ class WandbLogger:
                 reinit=True,
             )
 
-            logging.getLogger(__name__).info("Initialized wandb run: %s", self.run.name)
+            logging.getLogger(__name__).info(f"Initialized wandb run: {self.run.name}")
 
         except Exception as e:
-            logging.getLogger(__name__).warning("Failed to initialize wandb: %s", e)
+            logging.getLogger(__name__).warning(f"Failed to initialize wandb: {e}")
             self.enabled = False
 
-    def log(self, metrics: dict[str, Any], step: Optional[int] = None) -> None:
+    def log(self, metrics: Dict[str, Any], step: Optional[int] = None) -> None:
         """Log metrics to wandb.
 
         Args:
             metrics: Dictionary of metrics to log
             step: Optional step number
-
         """
         if self.enabled and self.run:
             try:
@@ -128,20 +122,17 @@ class WandbLogger:
             artifact_path: Path to the artifact
             artifact_type: Type of artifact (model, dataset, etc.)
             name: Optional name for the artifact
-
         """
         if self.enabled and self.run:
             try:
                 artifact = wandb.Artifact(
-                    name=name or Path(artifact_path).name,
-                    type=artifact_type,
+                    name=name or Path(artifact_path).name, type=artifact_type
                 )
                 artifact.add_file(artifact_path)
                 self.run.log_artifact(artifact)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logging.getLogger(__name__).warning(
-                    "Failed to log artifact to wandb: %s",
-                    e,
+                    f"Failed to log artifact to wandb: {e}"
                 )
 
     def finish(self) -> None:
@@ -150,32 +141,29 @@ class WandbLogger:
             try:
                 wandb.finish()
                 logging.getLogger(__name__).info("Finished wandb run")
-            except Exception as e:  # noqa: BLE001
-                logging.getLogger(__name__).warning("Failed to finish wandb run: %s", e)
+            except Exception as e:
+                logging.getLogger(__name__).warning(f"Failed to finish wandb run: {e}")
 
-    def watch(self, model, log_freq: int = 100) -> None:  # noqa: ANN001
+    def watch(self, model, log_freq: int = 100) -> None:
         """Watch model parameters and gradients.
 
         Args:
             model: PyTorch model to watch
             log_freq: Frequency of logging gradients
-
         """
         if self.enabled and self.run:
             try:
                 wandb.watch(model, log_freq=log_freq)
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 logging.getLogger(__name__).warning(
-                    "Failed to watch model in wandb: %s",
-                    e,
+                    f"Failed to watch model in wandb: {e}"
                 )
 
 
 def setup_wandb_logging(
-    config: WandbConfig,
-    training_config: dict[str, Any],
+    config: WandbConfig, training_config: Dict[str, Any]
 ) -> WandbLogger:
-    """Set up wandb logging.
+    """Setup wandb logging.
 
     Args:
         config: Wandb configuration
@@ -183,6 +171,5 @@ def setup_wandb_logging(
 
     Returns:
         WandbLogger: Configured wandb logger
-
     """
     return WandbLogger(config, training_config)

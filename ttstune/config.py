@@ -1,11 +1,10 @@
 """Configuration system for TTSTune."""
 
 from dataclasses import dataclass, field
-from enum import Enum
+from typing import Dict, List, Optional, Any, Union
 from pathlib import Path
-from typing import Any, Optional, Union
-
 import yaml
+from enum import Enum
 
 
 class ModelType(str, Enum):
@@ -35,9 +34,9 @@ class WandbConfig:
     project: Optional[str] = None
     entity: Optional[str] = None
     name: Optional[str] = None
-    tags: list[str] = field(default_factory=list)
+    tags: List[str] = field(default_factory=list)
     notes: Optional[str] = None
-    config: dict[str, Any] = field(default_factory=dict)
+    config: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -76,10 +75,10 @@ class ModelConfig:
     cache_dir: Optional[str] = None
 
     # Freezing options
-    freeze_components: list[str] = field(default_factory=list)
+    freeze_components: List[str] = field(default_factory=list)
 
     # Model-specific parameters
-    model_params: dict[str, Any] = field(default_factory=dict)
+    model_params: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -122,7 +121,7 @@ class TrainingConfig:
     resume_from_checkpoint: Optional[str] = None
 
     # Custom training parameters
-    custom_params: dict[str, Any] = field(default_factory=dict)
+    custom_params: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -141,23 +140,23 @@ class TTSTuneConfig:
     @classmethod
     def from_yaml(cls, yaml_path: Union[str, Path]) -> "TTSTuneConfig":
         """Load configuration from YAML file."""
-        with open(yaml_path, encoding="utf-8") as f:
+        with open(yaml_path, "r", encoding="utf-8") as f:
             config_dict = yaml.safe_load(f)
 
         return cls.from_dict(config_dict)
 
     @classmethod
-    def from_dict(cls, config_dict: dict[str, Any]) -> "TTSTuneConfig":
+    def from_dict(cls, config_dict: Dict[str, Any]) -> "TTSTuneConfig":
         """Create configuration from dictionary."""
         # Convert string enums
         if "model" in config_dict and "model_type" in config_dict["model"]:
             config_dict["model"]["model_type"] = ModelType(
-                config_dict["model"]["model_type"],
+                config_dict["model"]["model_type"]
             )
 
         if "dataset" in config_dict and "dataset_type" in config_dict["dataset"]:
             config_dict["dataset"]["dataset_type"] = DatasetType(
-                config_dict["dataset"]["dataset_type"],
+                config_dict["dataset"]["dataset_type"]
             )
 
         # Create nested configs
@@ -188,13 +187,13 @@ class TTSTuneConfig:
         with open(yaml_path, "w", encoding="utf-8") as f:
             yaml.dump(config_dict, f, default_flow_style=False, indent=2)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> Dict[str, Any]:
         """Convert configuration to dictionary."""
 
         def convert_dataclass(obj):
             if hasattr(obj, "__dataclass_fields__"):
                 result = {}
-                for field_name in obj.__dataclass_fields__:
+                for field_name, field_def in obj.__dataclass_fields__.items():
                     value = getattr(obj, field_name)
                     if isinstance(value, Enum):
                         result[field_name] = value.value
@@ -229,36 +228,29 @@ class TTSTuneConfig:
         """Validate configuration."""
         # Basic validation
         if self.model.model_type not in ModelType:
-            msg = f"Unsupported model type: {self.model.model_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported model type: {self.model.model_type}")
 
         if self.dataset.dataset_type not in DatasetType:
-            msg = f"Unsupported dataset type: {self.dataset.dataset_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported dataset type: {self.dataset.dataset_type}")
 
         # Dataset validation
         if self.dataset.dataset_type == DatasetType.WAV_TXT:
             if not self.dataset.dataset_path:
-                msg = "dataset_path is required for wav_txt dataset type"
-                raise ValueError(msg)
+                raise ValueError("dataset_path is required for wav_txt dataset type")
         elif self.dataset.dataset_type == DatasetType.HF_DATASET:
             if not self.dataset.dataset_name:
-                msg = "dataset_name is required for hf_dataset dataset type"
-                raise ValueError(msg)
+                raise ValueError("dataset_name is required for hf_dataset dataset type")
 
         # Training validation
         if self.training.per_device_train_batch_size < 1:
-            msg = "per_device_train_batch_size must be >= 1"
-            raise ValueError(msg)
+            raise ValueError("per_device_train_batch_size must be >= 1")
 
         if self.training.learning_rate <= 0:
-            msg = "learning_rate must be > 0"
-            raise ValueError(msg)
+            raise ValueError("learning_rate must be > 0")
 
         # Wandb validation
         if self.wandb.enabled and not self.wandb.project:
-            msg = "wandb.project is required when wandb.enabled is True"
-            raise ValueError(msg)
+            raise ValueError("wandb.project is required when wandb.enabled is True")
 
 
 def load_config(config_path: Union[str, Path]) -> TTSTuneConfig:
@@ -293,8 +285,6 @@ def create_example_config(
             early_stopping_patience=5,
         ),
         wandb=WandbConfig(
-            enabled=True,
-            project="ttstune-training",
-            tags=["chatterbox", "finetuning"],
+            enabled=True, project="ttstune-training", tags=["chatterbox", "finetuning"]
         ),
     )

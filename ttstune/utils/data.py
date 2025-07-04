@@ -1,17 +1,16 @@
 """Data utilities for dataset creation and collation."""
 
-import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Optional, Dict, Any, List, Union
+import torch
+from torch.utils.data import Dataset
 import librosa
 import numpy as np
 import pandas as pd
-from datasets import load_dataset
-from torch.utils.data import Dataset
-
-from ttstune.config import DatasetConfig, DatasetType
+import json
+from datasets import load_dataset, Dataset as HFDataset
+from ..config import DatasetConfig, DatasetType
 
 logger = logging.getLogger(__name__)
 
@@ -19,17 +18,16 @@ logger = logging.getLogger(__name__)
 class BaseDataset(Dataset):
     """Base dataset class for TTS training."""
 
-    def __init__(self, config: DatasetConfig, split: str = "train") -> None:
+    def __init__(self, config: DatasetConfig, split: str = "train"):
         """Initialize base dataset.
 
         Args:
             config: Dataset configuration
             split: Dataset split (train/eval)
-
         """
         self.config = config
         self.split = split
-        self.data: list[dict[str, Any]] = []
+        self.data: List[Dict[str, Any]] = []
 
         self._load_data()
         self._validate_data()
@@ -45,19 +43,16 @@ class BaseDataset(Dataset):
         elif self.config.dataset_type == DatasetType.METADATA_JSON:
             self._load_json_data()
         else:
-            msg = f"Unsupported dataset type: {self.config.dataset_type}"
-            raise ValueError(msg)
+            raise ValueError(f"Unsupported dataset type: {self.config.dataset_type}")
 
     def _load_wav_txt_data(self) -> None:
         """Load wav+txt paired files."""
         if not self.config.dataset_path:
-            msg = "dataset_path is required for wav_txt dataset type"
-            raise ValueError(msg)
+            raise ValueError("dataset_path is required for wav_txt dataset type")
 
         dataset_path = Path(self.config.dataset_path)
         if not dataset_path.exists():
-            msg = f"Dataset path not found: {dataset_path}"
-            raise FileNotFoundError(msg)
+            raise FileNotFoundError(f"Dataset path not found: {dataset_path}")
 
         # Find all wav files
         wav_files = list(dataset_path.rglob("*.wav"))
@@ -66,7 +61,7 @@ class BaseDataset(Dataset):
             txt_file = wav_file.with_suffix(".txt")
             if txt_file.exists():
                 try:
-                    with open(txt_file, encoding="utf-8") as f:
+                    with open(txt_file, "r", encoding="utf-8") as f:
                         text = f.read().strip()
 
                     if text:  # Skip empty text files
@@ -79,8 +74,7 @@ class BaseDataset(Dataset):
     def _load_hf_data(self) -> None:
         """Load Hugging Face dataset."""
         if not self.config.dataset_name:
-            msg = "dataset_name is required for hf_dataset type"
-            raise ValueError(msg)
+            raise ValueError("dataset_name is required for hf_dataset type")
 
         dataset = load_dataset(
             self.config.dataset_name,
@@ -101,8 +95,7 @@ class BaseDataset(Dataset):
                 # Create eval split from train
                 train_dataset = dataset[self.config.train_split_name]
                 split_dataset = train_dataset.train_test_split(
-                    test_size=self.config.eval_split_size,
-                    seed=42,
+                    test_size=self.config.eval_split_size, seed=42
                 )
                 hf_data = (
                     split_dataset["test"]
@@ -110,8 +103,7 @@ class BaseDataset(Dataset):
                     else split_dataset["train"]
                 )
             else:
-                msg = f"Split '{split_name}' not found in dataset"
-                raise ValueError(msg)
+                raise ValueError(f"Split '{split_name}' not found in dataset")
         else:
             hf_data = dataset[split_name]
 
@@ -134,7 +126,7 @@ class BaseDataset(Dataset):
                     "audio_path": audio_path,
                     "audio_data": audio_data if audio_path is None else None,
                     "text": text,
-                },
+                }
             )
 
         logger.info(f"Loaded {len(self.data)} samples from HF dataset")
@@ -142,8 +134,7 @@ class BaseDataset(Dataset):
     def _load_csv_data(self) -> None:
         """Load CSV metadata format."""
         if not self.config.dataset_path:
-            msg = "dataset_path is required for metadata_csv type"
-            raise ValueError(msg)
+            raise ValueError("dataset_path is required for metadata_csv type")
 
         csv_path = Path(self.config.dataset_path)
         df = pd.read_csv(csv_path)
@@ -164,12 +155,11 @@ class BaseDataset(Dataset):
     def _load_json_data(self) -> None:
         """Load JSON lines metadata format."""
         if not self.config.dataset_path:
-            msg = "dataset_path is required for metadata_json type"
-            raise ValueError(msg)
+            raise ValueError("dataset_path is required for metadata_json type")
 
         json_path = Path(self.config.dataset_path)
 
-        with open(json_path, encoding="utf-8") as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             for line in f:
                 try:
                     item = json.loads(line.strip())
@@ -208,7 +198,7 @@ class BaseDataset(Dataset):
             valid_data.append(item)
 
         logger.info(
-            f"Filtered to {len(valid_data)} valid samples (removed {len(self.data) - len(valid_data)})",
+            f"Filtered to {len(valid_data)} valid samples (removed {len(self.data) - len(valid_data)})"
         )
         self.data = valid_data
 
@@ -216,7 +206,7 @@ class BaseDataset(Dataset):
         """Get dataset length."""
         return len(self.data)
 
-    def __getitem__(self, idx: int) -> dict[str, Any]:
+    def __getitem__(self, idx: int) -> Dict[str, Any]:
         """Get dataset item."""
         item = self.data[idx]
 
@@ -232,15 +222,13 @@ class BaseDataset(Dataset):
             "sample_rate": self.config.sample_rate or 16000,
         }
 
-    def _load_audio(self, item: dict[str, Any]) -> Optional[np.ndarray]:
+    def _load_audio(self, item: Dict[str, Any]) -> Optional[np.ndarray]:
         """Load audio from item."""
         try:
             if item.get("audio_path"):
                 # Load from file
                 audio, sr = librosa.load(
-                    item["audio_path"],
-                    sr=self.config.sample_rate,
-                    mono=True,
+                    item["audio_path"], sr=self.config.sample_rate, mono=True
                 )
             elif item.get("audio_data"):
                 # From HF dataset format
@@ -278,7 +266,7 @@ class BaseDataset(Dataset):
                 # Truncate
                 max_samples = int(
                     self.config.max_audio_duration_s
-                    * (self.config.sample_rate or 16000),
+                    * (self.config.sample_rate or 16000)
                 )
                 audio = audio[:max_samples]
 
@@ -292,18 +280,17 @@ class BaseDataset(Dataset):
 class BaseDataCollator:
     """Base data collator for TTS training."""
 
-    def __init__(self, pad_token_id: int = 0, max_length: Optional[int] = None) -> None:
+    def __init__(self, pad_token_id: int = 0, max_length: Optional[int] = None):
         """Initialize data collator.
 
         Args:
             pad_token_id: Token ID for padding
             max_length: Maximum sequence length
-
         """
         self.pad_token_id = pad_token_id
         self.max_length = max_length
 
-    def __call__(self, batch: list[Optional[dict[str, Any]]]) -> dict[str, Any]:
+    def __call__(self, batch: List[Optional[Dict[str, Any]]]) -> Dict[str, Any]:
         """Collate batch of samples.
 
         Args:
@@ -311,7 +298,6 @@ class BaseDataCollator:
 
         Returns:
             Collated batch
-
         """
         # Filter out None samples
         valid_batch = [item for item in batch if item is not None]
@@ -332,7 +318,6 @@ def create_dataset(config: DatasetConfig, split: str = "train") -> BaseDataset:
 
     Returns:
         BaseDataset: Created dataset
-
     """
     return BaseDataset(config, split)
 
@@ -346,18 +331,15 @@ def create_data_collator(collator_type: str = "base", **kwargs) -> BaseDataColla
 
     Returns:
         BaseDataCollator: Created data collator
-
     """
     if collator_type == "base":
         return BaseDataCollator(**kwargs)
-    msg = f"Unknown collator type: {collator_type}"
-    raise ValueError(msg)
+    else:
+        raise ValueError(f"Unknown collator type: {collator_type}")
 
 
 def split_dataset(
-    dataset: BaseDataset,
-    eval_split_size: float = 0.1,
-    seed: int = 42,
+    dataset: BaseDataset, eval_split_size: float = 0.1, seed: int = 42
 ) -> tuple[BaseDataset, BaseDataset]:
     """Split dataset into train and eval sets.
 
@@ -368,7 +350,6 @@ def split_dataset(
 
     Returns:
         Tuple of (train_dataset, eval_dataset)
-
     """
     import random
 
