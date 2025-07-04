@@ -1,0 +1,150 @@
+# Chatterbox German Emilia Training Configuration
+# Based on MrDragonFox/DE_Emilia_Yodas_680h dataset
+# This configuration replicates the original training setup for German voice cloning
+# with 680 hours of high-quality German speech data
+
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+
+  # For German fine-tuning, we train all components for best results
+  freeze_components: []  # Train all components for multilingual adaptation
+
+  # Model-specific parameters optimized for German
+  model_params:
+    attention_dropout: 0.1
+    hidden_dropout: 0.1
+
+dataset:
+  dataset_type: hf_dataset
+  dataset_name: MrDragonFox/DE_Emilia_Yodas_680h
+  dataset_config_name: null  # Use default config
+  train_split_name: train
+  eval_split_name: null  # Will create from train split
+  eval_split_size: 0.0002  # 0.02% for evaluation (small due to large dataset)
+
+  # Dataset column mappings for Emilia Yodas dataset
+  text_column_name: text_scribe  # Column containing German transcriptions
+  audio_column_name: audio       # Column containing audio files
+
+  # Audio processing constraints for German speech
+  max_audio_length: 30.0  # 30 seconds max (German can have longer sentences)
+  min_audio_length: 0.5   # 0.5 seconds min
+  sample_rate: 22050      # Yodas dataset sample rate
+
+  # Text processing for German
+  max_text_length: 250    # German sentences can be longer
+  min_text_length: 5      # Minimum text length
+
+  # HF dataset settings
+  streaming: false
+  trust_remote_code: false
+  preprocessing_num_workers: 8  # More workers for large dataset
+  ignore_verifications: false
+
+training:
+  output_dir: ./checkpoints/chatterbox_finetuned_yodas
+
+  # Training schedule optimized for large dataset
+  num_train_epochs: 1     # Large dataset needs fewer epochs
+  per_device_train_batch_size: 4
+  per_device_eval_batch_size: 4
+  gradient_accumulation_steps: 2  # Effective batch size of 8
+
+  # Learning rate schedule
+  learning_rate: 5e-5     # Conservative learning rate for stability
+  warmup_steps: 100       # Quick warmup
+  warmup_ratio: 0.0       # Use warmup_steps instead
+  weight_decay: 0.01
+
+  # Evaluation and saving
+  eval_strategy: steps
+  eval_steps: 2000        # Evaluate every 2000 steps
+  eval_on_start: true     # Get baseline metrics
+  save_strategy: steps
+  save_steps: 4000        # Save every 4000 steps
+  save_total_limit: 4     # Keep 4 checkpoints
+
+  # Logging
+  logging_steps: 10       # Frequent logging for monitoring
+  report_to: [tensorboard]  # Use tensorboard by default
+
+  # Performance optimizations
+  fp16: true              # Mixed precision for speed
+  gradient_checkpointing: false  # Disable for large dataset (speed over memory)
+  dataloader_num_workers: 8      # More workers for large dataset
+  dataloader_pin_memory: false   # As per original config
+  gradient_clip_norm: null       # No gradient clipping
+
+  # Training control
+  do_train: true
+  do_eval: true
+  load_best_model_at_end: true
+  metric_for_best_model: eval_loss
+  greater_is_better: false
+  early_stopping_patience: null  # No early stopping for single epoch
+
+  # Optimizer settings
+  optim: adamw_torch
+  lr_scheduler_type: linear
+
+# Weights & Biases configuration (optional)
+wandb:
+  enabled: false  # Set to true to enable wandb logging
+  project: chatterbox-emilia-german
+  entity: your-wandb-entity
+  name: emilia-yodas-680h-v1
+  tags: [chatterbox, german, emilia, yodas, voice-cloning]
+  notes: "Training Chatterbox on German Emilia Yodas 680h dataset for high-quality German TTS"
+  config:
+    architecture: chatterbox
+    dataset: DE_Emilia_Yodas_680h
+    language: german
+    hours: 680
+
+# Advanced configuration for German-specific training
+advanced:
+  # Component-specific learning rates for German adaptation
+  component_learning_rates:
+    t3: 5e-5        # Text model - same as base learning rate
+    s3gen: 5e-5     # Speech generation - same as base learning rate
+    voice_encoder: 2e-5  # Voice encoder - lower learning rate
+
+  # Training strategies
+  progressive_training: false  # Train all components simultaneously
+
+  # Data augmentation settings (conservative for high-quality dataset)
+  data_augmentation:
+    enabled: false  # Disable for high-quality dataset
+    speed_perturbation: [0.95, 1.0, 1.05]
+    noise_augmentation: false
+    volume_perturbation: [0.9, 1.0, 1.1]
+
+  # German-specific preprocessing
+  preprocessing:
+    normalize_text: true
+    remove_punctuation: false  # Keep punctuation for proper German intonation
+    lowercase: false           # Keep case for German nouns (wichtig!)
+    expand_abbreviations: true
+
+    # Language-specific preprocessing for German
+    language_specific:
+      german:
+        handle_umlauts: true      # Properly handle ä, ö, ü, ß
+        expand_numbers: true      # Expand numbers to words
+        phoneme_conversion: false # Keep text as-is
+        normalize_quotes: true    # Normalize German quotation marks
+        handle_compounds: true    # Handle German compound words
+
+# Global settings
+seed: 42
+device: null  # Auto-detect best device (CUDA if available)
+
+# Training tips for German Emilia dataset:
+# 1. This is a large, high-quality dataset (680 hours)
+# 2. Single epoch is usually sufficient due to dataset size
+# 3. German has complex phonetics - train all components
+# 4. Keep case sensitivity for proper German grammar
+# 5. Monitor eval_loss closely - should decrease steadily
+# 6. Expected training time: 12-24 hours on RTX 4090
+# 7. Final model should achieve native German quality

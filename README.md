@@ -124,7 +124,7 @@ wandb:
   project: my-voice-clone
 ```
 
-### German Language Training (Yodas Dataset)
+### German Language Training (Emilia Yodas Dataset)
 
 ```yaml
 model:
@@ -145,6 +145,8 @@ training:
   gradient_accumulation_steps: 2
   learning_rate: 5e-5
   fp16: true
+
+# See examples/example_emilia_de.yaml for complete configuration
 ```
 
 ### Memory-Efficient Training
@@ -177,11 +179,38 @@ ttstune validate-config --config config.yaml
 # Start training
 ttstune train --config config.yaml --verbose
 
+# Train with German Emilia dataset
+ttstune train --config examples/example_emilia_de.yaml
+
 # Evaluate model
 ttstune evaluate --config config.yaml --checkpoint ./outputs/checkpoint-1000
 
 # Get help
 ttstune --help
+```
+
+## 🚀 Quick Training Examples
+
+### Train German Emilia Model (680h Dataset)
+```bash
+# Validate configuration first
+ttstune validate-config --config examples/example_emilia_de.yaml
+
+# Start training (12-24 hours on RTX 4090)
+ttstune train --config examples/example_emilia_de.yaml
+
+# Monitor with tensorboard
+tensorboard --logdir ./checkpoints/chatterbox_finetuned_yodas/logs
+```
+
+### Train Your Own Voice
+```bash
+# Create config for your dataset
+ttstune create-config --model-type chatterbox --output my_voice.yaml
+
+# Edit my_voice.yaml to point to your wav+txt files
+# Then train
+ttstune train --config my_voice.yaml
 ```
 
 ## 🔧 Installation
