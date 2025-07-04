@@ -1,0 +1,43 @@
+# Chatterbox training with Hugging Face dataset
+# Example using Common Voice dataset
+
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+  freeze_components:
+    - voice_encoder
+    - s3gen
+
+dataset:
+  dataset_type: hf_dataset
+  dataset_name: mozilla-foundation/common_voice_11_0
+  dataset_config_name: en
+  text_column_name: sentence
+  audio_column_name: audio
+  eval_split_size: 0.02
+  max_audio_duration_s: 15.0
+  min_audio_duration_s: 3.0
+  preprocessing_num_workers: 4
+
+training:
+  output_dir: ./outputs/commonvoice_experiment
+  num_train_epochs: 5
+  per_device_train_batch_size: 8
+  learning_rate: 2.0e-4
+  warmup_ratio: 0.1
+  save_steps: 1000
+  eval_steps: 500
+  logging_steps: 50
+  early_stopping_patience: 3
+  fp16: true
+  dataloader_num_workers: 2
+
+wandb:
+  enabled: true
+  project: ttstune-commonvoice
+  name: chatterbox-cv11-en
+  tags:
+    - chatterbox
+    - common_voice
+    - english
+  notes: "Training Chatterbox on Common Voice English dataset"

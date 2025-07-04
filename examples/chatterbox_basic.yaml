@@ -1,0 +1,33 @@
+# Basic Chatterbox voice cloning configuration
+# This config trains only the T3 component for voice adaptation
+
+model:
+  model_type: chatterbox
+  base_model: ResembleAI/chatterbox
+  freeze_components:
+    - voice_encoder
+    - s3gen
+
+dataset:
+  dataset_path: ./dataset
+  dataset_type: wav_txt
+  eval_split_size: 0.01
+  max_audio_duration_s: 20.0
+  min_audio_duration_s: 2.0
+
+training:
+  output_dir: ./outputs
+  num_train_epochs: 10
+  per_device_train_batch_size: 4
+  learning_rate: 1.0e-4
+  save_steps: 500
+  eval_steps: 250
+  early_stopping_patience: 5
+  fp16: true
+
+wandb:
+  enabled: false  # Set to true and configure project if you want wandb logging
+  project: my-tts-project
+  tags:
+    - chatterbox
+    - voice-cloning
