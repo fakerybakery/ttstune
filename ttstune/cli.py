@@ -3,11 +3,11 @@
 import click
 
 
-@click.group()  # type: ignore[misc]
+@click.group()
 def main() -> None:
     """TTSTune CLI."""
 
-@main.command()  # type: ignore[misc]
+@main.command()
 def train() -> None:
     """Train a TTS model."""
 

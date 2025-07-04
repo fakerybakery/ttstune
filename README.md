@@ -6,7 +6,15 @@ Configuration-driven framework for fine-tuning TTS models.
 
 - Chatterbox
 - F5-TTS
+- CSM 1B
+- Orpheus
 - StyleTTS 2
+
+## Installation
+
+```bash
+pip install ttstune
+```
 
 ## Development
 
@@ -17,6 +25,14 @@ source .venv/bin/activate
 uv pip install -r requirements.txt
 pre-commit install
 ```
+
+## Acknowledgments
+
+TTSTune is built on and wraps the work of many open-source projects. Without them, this project would not be possible.
+
+* [chatterbox-finetuning (@stlohrey)](https://github.com/stlohrey/chatterbox-finetuning)
+* [F5-TTS](https://github.com/SWivid/F5-TTS)
+* [Unsloth](https://github.com/unslothai/unsloth)
 
 ## License
 
