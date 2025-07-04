@@ -192,6 +192,65 @@ class TTSTuneConfig:
                 config_dict["dataset"]["dataset_type"]
             )
 
+        # Type conversion for training config
+        if "training" in config_dict:
+            training_dict = config_dict["training"]
+            # Convert numeric fields that might be strings
+            numeric_fields = [
+                "learning_rate",
+                "weight_decay",
+                "warmup_ratio",
+                "eval_split_size",
+                "gradient_clip_norm",
+            ]
+            for field in numeric_fields:
+                if field in training_dict and isinstance(training_dict[field], str):
+                    try:
+                        training_dict[field] = float(training_dict[field])
+                    except (ValueError, TypeError):
+                        pass  # Keep original value if conversion fails
+
+        # Type conversion for dataset config
+        if "dataset" in config_dict:
+            dataset_dict = config_dict["dataset"]
+            # Convert numeric fields that might be strings
+            numeric_fields = [
+                "eval_split_size",
+                "max_audio_length",
+                "min_audio_length",
+                "max_audio_duration_s",
+                "min_audio_duration_s",
+                "sample_rate",
+                "max_text_length",
+                "min_text_length",
+            ]
+            for field in numeric_fields:
+                if field in dataset_dict and isinstance(dataset_dict[field], str):
+                    try:
+                        if field in [
+                            "sample_rate",
+                            "max_text_length",
+                            "min_text_length",
+                        ]:
+                            dataset_dict[field] = int(dataset_dict[field])
+                        else:
+                            dataset_dict[field] = float(dataset_dict[field])
+                    except (ValueError, TypeError):
+                        pass  # Keep original value if conversion fails
+
+        # Type conversion for advanced config
+        if (
+            "advanced" in config_dict
+            and "component_learning_rates" in config_dict["advanced"]
+        ):
+            component_lrs = config_dict["advanced"]["component_learning_rates"]
+            for component, lr in component_lrs.items():
+                if isinstance(lr, str):
+                    try:
+                        component_lrs[component] = float(lr)
+                    except (ValueError, TypeError):
+                        pass  # Keep original value if conversion fails
+
         # Create nested configs
         model_config = ModelConfig(**config_dict.get("model", {}))
         dataset_config = DatasetConfig(**config_dict.get("dataset", {}))
