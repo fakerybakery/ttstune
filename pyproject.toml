@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ttstune"
+version = "0.1.0"
+description = "Configuration-driven framework for fine-tuning TTS models."
+authors = [{ name = "mrfakename", email = "me@mrfake.name" }]
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT OR Apache-2.0" }
+
+dependencies = [
+    "click",
+]
+
+[project.scripts]
+ttstune = "ttstune.cli:main"
+
+[project.optional-dependencies]
+dev = ["ruff", "mypy", "pytest", "pre-commit"]
+
+[tool.setuptools]
+packages = ["ttstune"]
+
+[tool.setuptools.package-data]
+"ttstune" = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+disallow_untyped_defs = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+fix = true
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = ["D203", "D213"]
+extend-select = ["I"]
+
+[tool.ruff.format]
+quote-style = "double"
