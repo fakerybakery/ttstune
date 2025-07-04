@@ -1,6 +1,7 @@
 """Chatterbox trainer implementation."""
 
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import torch
@@ -214,6 +215,11 @@ class ChatterboxTrainer(MultiComponentTrainer):
         # Create arguments list for subprocess
         args = [sys.executable, component_config.script_path]
 
+        logger.info(f"Preparing {component_name} training...")
+        logger.info(f"Python executable: {sys.executable}")
+        logger.info(f"Script path: {component_config.script_path}")
+        logger.info(f"Working directory: {os.getcwd()}")
+
         # Add model arguments
         for key, value in component_config.model_args.items():
             if value is not None:
@@ -241,35 +247,106 @@ class ChatterboxTrainer(MultiComponentTrainer):
                 else:
                     args.extend([f"--{key}", str(value)])
 
-        logger.info(
-            f"Starting {component_name} training with command: {' '.join(args)}"
-        )
+        # Log the full command for debugging
+        logger.info(f"Full command: {' '.join(args)}")
+        logger.info(f"Total arguments: {len(args)}")
 
-        # Run the component trainer
+        # Log key arguments for visibility
+        key_args = {}
+        for i, arg in enumerate(args):
+            if arg.startswith("--"):
+                key = arg[2:]  # Remove --
+                if i + 1 < len(args) and not args[i + 1].startswith("--"):
+                    key_args[key] = args[i + 1]
+                else:
+                    key_args[key] = True
+
+        logger.info(f"Key arguments: {key_args}")
+        logger.info(f"Starting {component_name} training subprocess...")
+
+        # Run the component trainer with real-time output
         try:
-            result = subprocess.run(args, capture_output=True, text=True, check=True)
+            logger.info(f"Launching {component_name} subprocess...")
 
-            logger.info(f"{component_name} training completed successfully")
-            logger.debug(f"{component_name} stdout: {result.stdout}")
-
-            return {
-                "success": True,
-                "returncode": result.returncode,
-                "stdout": result.stdout,
-                "stderr": result.stderr,
-            }
-
-        except subprocess.CalledProcessError as e:
-            logger.error(
-                f"{component_name} training failed with return code {e.returncode}"
+            # Start the process with real-time output streaming
+            process = subprocess.Popen(
+                args,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Combine stderr with stdout
+                text=True,
+                bufsize=1,  # Line buffered
+                universal_newlines=True,
             )
-            logger.error(f"{component_name} stderr: {e.stderr}")
+
+            logger.info(f"{component_name} process started with PID: {process.pid}")
+
+            # Stream output in real-time
+            output_lines = []
+            while True:
+                output = process.stdout.readline()
+                if output == "" and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    output_lines.append(line)
+                    # Log progress lines and important messages
+                    if any(
+                        keyword in line.lower()
+                        for keyword in [
+                            "downloading",
+                            "progress",
+                            "epoch",
+                            "step",
+                            "loss",
+                            "loading",
+                            "generating",
+                            "extracting",
+                            "error",
+                            "warning",
+                        ]
+                    ):
+                        logger.info(f"[{component_name}] {line}")
+                    else:
+                        logger.debug(f"[{component_name}] {line}")
+
+            # Wait for process to complete
+            return_code = process.poll()
+
+            if return_code == 0:
+                logger.info(f"{component_name} training completed successfully")
+                return {
+                    "success": True,
+                    "returncode": return_code,
+                    "stdout": "\n".join(output_lines),
+                    "stderr": "",
+                }
+            else:
+                logger.error(
+                    f"{component_name} training failed with return code {return_code}"
+                )
+                # Log last few lines for debugging
+                if output_lines:
+                    logger.error(f"{component_name} last output lines:")
+                    for line in output_lines[-10:]:  # Last 10 lines
+                        logger.error(f"[{component_name}] {line}")
+
+                return {
+                    "success": False,
+                    "returncode": return_code,
+                    "stdout": "\n".join(output_lines),
+                    "stderr": "",
+                    "error": f"Process failed with return code {return_code}",
+                }
+
+        except Exception as e:
+            logger.error(f"Exception while running {component_name} training: {e}")
+            logger.error(f"Command was: {' '.join(args)}")
 
             return {
                 "success": False,
-                "returncode": e.returncode,
-                "stdout": e.stdout,
-                "stderr": e.stderr,
+                "returncode": -1,
+                "stdout": "",
+                "stderr": str(e),
                 "error": str(e),
             }
 
