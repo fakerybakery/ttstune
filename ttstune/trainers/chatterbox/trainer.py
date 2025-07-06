@@ -83,7 +83,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
             "freeze_s3gen": True,  # Always freeze S3Gen during T3 training
         }
 
-        data_args = self._convert_dataset_config()
+        data_args = self._convert_dataset_config_for_component("t3")
         training_args = self._convert_training_config("t3")
 
         return ChatterboxComponentConfig(
@@ -106,7 +106,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
             in self.config.model.freeze_components,
         }
 
-        data_args = self._convert_dataset_config()
+        data_args = self._convert_dataset_config_for_component("s3gen")
         training_args = self._convert_training_config("s3gen")
 
         return ChatterboxComponentConfig(
@@ -155,6 +155,21 @@ class ChatterboxTrainer(MultiComponentTrainer):
                 "ignore_verifications": dataset_config.ignore_verifications,
             }
 
+    def _convert_dataset_config_for_component(self, component: str) -> Dict[str, Any]:
+        """Convert TTSTune dataset config to component-specific format."""
+        dataset_config = self.config.dataset
+        base_config = self._convert_dataset_config()
+
+        # Remove component-specific arguments that don't apply
+        if component == "s3gen":
+            # S3Gen doesn't use text_column_name
+            base_config.pop("text_column_name", None)
+        elif component == "t3":
+            # T3 uses both text and audio columns
+            pass
+
+        return base_config
+
     def _convert_training_config(self, component: str) -> Dict[str, Any]:
         """Convert TTSTune training config to component format."""
         training_config = self.config.training
@@ -194,7 +209,8 @@ class ChatterboxTrainer(MultiComponentTrainer):
                 f"and we're relying on dataset split '{self.config.dataset.eval_split_name}' which may not exist"
             )
 
-        return {
+        # Build the training arguments dictionary
+        training_args = {
             "output_dir": str(output_dir),
             "num_train_epochs": training_config.num_train_epochs,
             "per_device_train_batch_size": training_config.per_device_train_batch_size,
@@ -208,7 +224,6 @@ class ChatterboxTrainer(MultiComponentTrainer):
             "eval_steps": training_config.eval_steps,
             "save_steps": training_config.save_steps,
             "save_total_limit": training_config.save_total_limit,
-            "evaluation_strategy": training_config.eval_strategy,
             "save_strategy": training_config.save_strategy,
             "load_best_model_at_end": load_best_model_at_end,
             "metric_for_best_model": training_config.metric_for_best_model,
@@ -227,6 +242,12 @@ class ChatterboxTrainer(MultiComponentTrainer):
             "do_eval": True,
             "seed": self.config.seed,
         }
+
+        # Use the correct HuggingFace argument name for evaluation strategy
+        # HuggingFace uses "evaluation_strategy" not "eval_strategy"
+        training_args["evaluation_strategy"] = training_config.eval_strategy
+
+        return training_args
 
     def train_component(self, component_name: str) -> Dict[str, Any]:
         """Train a specific component using its dedicated trainer.
