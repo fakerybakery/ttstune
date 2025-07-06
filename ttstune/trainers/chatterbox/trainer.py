@@ -162,6 +162,38 @@ class ChatterboxTrainer(MultiComponentTrainer):
         # Create component-specific output directory
         output_dir = Path(training_config.output_dir) / component
 
+        # Determine if evaluation is actually possible
+        # load_best_model_at_end requires evaluation to be enabled
+        # If eval_split_size is very small or 0, evaluation might not be possible
+        eval_split_size = self.config.dataset.eval_split_size
+        load_best_model_at_end = training_config.load_best_model_at_end
+
+        # Disable load_best_model_at_end if evaluation is unlikely to work
+        # Very small eval_split_size might not create a meaningful evaluation set
+        if eval_split_size <= 0 or eval_split_size < 0.01:  # Less than 1%
+            load_best_model_at_end = False
+            logger.warning(
+                f"Disabling load_best_model_at_end for {component} because eval_split_size "
+                f"({eval_split_size}) is too small to create a meaningful evaluation set (< 1%)"
+            )
+
+        # Also check if we have an explicit eval split name but it might not exist
+        # In that case, we'll let the individual trainer handle it and disable load_best_model_at_end
+        # if no eval dataset is created
+        if (
+            hasattr(self.config.dataset, "eval_split_name")
+            and self.config.dataset.eval_split_name
+            and eval_split_size <= 0
+        ):
+            # If we have an eval split name but eval_split_size is 0, we're relying on the dataset
+            # having that split. If it doesn't exist, evaluation will fail.
+            # We'll be conservative and disable load_best_model_at_end
+            load_best_model_at_end = False
+            logger.warning(
+                f"Disabling load_best_model_at_end for {component} because eval_split_size is 0 "
+                f"and we're relying on dataset split '{self.config.dataset.eval_split_name}' which may not exist"
+            )
+
         return {
             "output_dir": str(output_dir),
             "num_train_epochs": training_config.num_train_epochs,
@@ -178,7 +210,7 @@ class ChatterboxTrainer(MultiComponentTrainer):
             "save_total_limit": training_config.save_total_limit,
             "evaluation_strategy": training_config.eval_strategy,
             "save_strategy": training_config.save_strategy,
-            "load_best_model_at_end": training_config.load_best_model_at_end,
+            "load_best_model_at_end": load_best_model_at_end,
             "metric_for_best_model": training_config.metric_for_best_model,
             "greater_is_better": training_config.greater_is_better,
             "early_stopping_patience": training_config.early_stopping_patience,
